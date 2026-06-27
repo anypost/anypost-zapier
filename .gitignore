@@ -1,0 +1,18 @@
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+
+# Zapier
+.zapierapprc
+.zapier-build/
+build/
+*.zip
+
+# Env / secrets (used by `zapier test` via tools.env.inject())
+.env
+.environment
+
+# Logs
+*.log
