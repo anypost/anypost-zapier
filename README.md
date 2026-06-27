@@ -24,11 +24,9 @@ Turning the Zap on creates an Anypost webhook scoped to that event; turning it o
 
 ### Send Email
 
-Sends a transactional email through Anypost. Provide a `from` address on a verified domain and at least one recipient. Supply the body as HTML, Text, Markdown, or a Template. Recipients across To, Cc, and Bcc share one envelope and count against a combined limit of 50.
+Sends a transactional email through Anypost. Provide a `from` address on a verified domain and at least one recipient. Supply the body as HTML, Text, or a Template. Recipients across To, Cc, and Bcc share one envelope and count against a combined limit of 50.
 
-A Markdown Body is rendered to email-safe HTML and a plain-text alternative before sending, via the [`emailmd`](https://www.emailmd.dev) package. It cannot be combined with an HTML or Text Body. Rendering runs in the integration, which is why `emailmd` is a runtime dependency; the platform runs on Node 22, which it requires.
-
-Variables is a key-value map substituted into `{{ markers }}` in the subject and body, including template content, rendered per recipient by Anypost. Markers pass through Markdown rendering untouched, so a Markdown Body can carry them too.
+Variables is a key-value map substituted into `{{ markers }}` in the subject and body, including template content, rendered per recipient by Anypost.
 
 An optional Idempotency Key makes retries safe: a duplicate request within 24 hours returns the original result without sending again. See the [send reference](https://anypost.com/docs/reference/emails) for the complete field list.
 
@@ -49,7 +47,6 @@ To exercise the integration against the live API, set `API_KEY=ap_...` in a loca
 src/
   index.ts                   Integration definition
   authentication.ts          API-key auth, /whoami test, error mapping
-  markdown.ts                Lazy Markdown -> html/text rendering via emailmd
   creates/send-email.ts      Send Email action  -> POST /v1/email
   triggers/email-event.ts    New Email Event trigger -> /v1/webhooks
   triggers/template-list.ts  Hidden source for the Template dropdown -> /v1/templates

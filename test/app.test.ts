@@ -1,15 +1,5 @@
-// Stub the markdown renderer so the suite never loads emailmd/MJML: we assert
-// that perform calls it and wires its result into the body, not that emailmd
-// itself renders (covered by an end-to-end smoke run outside jest).
-jest.mock('../src/markdown', () => ({
-  renderMarkdown: jest.fn(async () => ({ html: '<h1>Hi</h1>', text: 'Hi' })),
-}));
-
 import App from '../src/index';
 import { includeBearerToken, handleApiError } from '../src/authentication';
-import { renderMarkdown } from '../src/markdown';
-
-const mockedRender = renderMarkdown as jest.MockedFunction<typeof renderMarkdown>;
 
 // A fake `z` that records every z.request call and returns canned responses
 // in order (repeating the last one). Keeps the suite offline and
@@ -71,9 +61,8 @@ describe('app definition', () => {
     expect(field.dynamic).toBe('template_list.id.name');
   });
 
-  it('offers Markdown Body and a Variables dict on Send Email', () => {
+  it('offers a Variables dict on Send Email', () => {
     const fields = App.creates?.send_email.operation.inputFields ?? [];
-    expect(fields.find((f: any) => f.key === 'markdown')).toBeDefined();
     const variables = fields.find((f: any) => f.key === 'variables') as any;
     expect(variables?.dict).toBe(true);
   });
@@ -142,35 +131,6 @@ describe('Send Email', () => {
       authData: base.authData,
     });
     expect(emptyVars.calls[0].body).not.toHaveProperty('variables');
-  });
-});
-
-describe('Send Email — Markdown Body', () => {
-  beforeEach(() => mockedRender.mockClear());
-
-  it('renders markdown to html/text and does not send the raw markdown', async () => {
-    const { z, calls } = makeZ();
-    await sendEmail(z, {
-      inputData: { from: 'a@example.com', to: ['b@example.com'], subject: 'Hi', markdown: '# Hi {{ name }}' },
-      authData: { api_key: 'ap_test' },
-    });
-
-    expect(mockedRender).toHaveBeenCalledWith('# Hi {{ name }}');
-    expect(calls[0].body).toMatchObject({ html: '<h1>Hi</h1>', text: 'Hi' });
-    expect(calls[0].body).not.toHaveProperty('markdown');
-  });
-
-  it('rejects a send that sets both markdown and html/text without calling the API', async () => {
-    const { z, calls } = makeZ();
-    await expect(
-      sendEmail(z, {
-        inputData: { from: 'a@example.com', to: ['b@example.com'], markdown: '# Hi', html: '<p>Hi</p>' },
-        authData: { api_key: 'ap_test' },
-      }),
-    ).rejects.toThrow(/not both/);
-
-    expect(mockedRender).not.toHaveBeenCalled();
-    expect(calls).toHaveLength(0);
   });
 });
 

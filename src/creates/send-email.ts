@@ -1,6 +1,5 @@
 import type { Create, ZObject, Bundle } from 'zapier-platform-core';
 import { API_BASE } from '../authentication';
-import { renderMarkdown } from '../markdown';
 
 // Maps to POST /v1/email (EmailSendRequest). Single-envelope send: all
 // recipients share one message. For many independent messages in one call,
@@ -11,7 +10,6 @@ interface SendEmailInput {
   subject?: string;
   html?: string;
   text?: string;
-  markdown?: string;
   template_id?: string;
   variables?: Record<string, unknown>;
   reply_to?: string;
@@ -33,27 +31,8 @@ const perform = async (z: ZObject, bundle: Bundle) => {
     to: input.to, // list field -> string[]
   };
   if (input.subject) body.subject = input.subject;
-
-  // Content source. A Markdown Body is rendered locally to html + text; it is
-  // mutually exclusive with HTML/Text Body (same rule as the Anypost SDK).
-  // `{{ marker }}` placeholders pass through the renderer untouched and are
-  // substituted server-side from `variables`.
-  if (input.markdown) {
-    if (input.html || input.text) {
-      throw new z.errors.Error(
-        'Provide either a Markdown Body or an HTML/Text Body, not both.',
-        'InvalidInput',
-        400,
-      );
-    }
-    const rendered = await renderMarkdown(input.markdown);
-    body.html = rendered.html;
-    body.text = rendered.text;
-  } else {
-    if (input.html) body.html = input.html;
-    if (input.text) body.text = input.text;
-  }
-
+  if (input.html) body.html = input.html;
+  if (input.text) body.text = input.text;
   if (input.template_id) body.template_id = input.template_id;
   if (input.variables && Object.keys(input.variables).length) body.variables = input.variables;
   if (input.reply_to) body.reply_to = input.reply_to;
@@ -111,18 +90,9 @@ export const sendEmail: Create = {
         label: 'HTML Body',
         type: 'text',
         required: false,
-        helpText: 'Provide at least one of HTML Body, Text Body, Markdown Body, or Template.',
+        helpText: 'Provide at least one of HTML Body, Text Body, or Template.',
       },
       { key: 'text', label: 'Text Body', type: 'text', required: false },
-      {
-        key: 'markdown',
-        label: 'Markdown Body',
-        type: 'text',
-        required: false,
-        helpText:
-          'Write the body in Markdown; it is rendered to email-safe HTML and a ' +
-          'plain-text alternative. Cannot be combined with HTML Body or Text Body.',
-      },
       {
         key: 'template_id',
         label: 'Template',
@@ -132,7 +102,9 @@ export const sendEmail: Create = {
         // store the template `id`, show its `name`. Users can still type or
         // map a raw id.
         dynamic: 'template_list.id.name',
-        helpText: 'A published template to render instead of an inline body.',
+        helpText:
+          'A published template to render instead of an inline body. Markdown ' +
+          'templates authored in Anypost are rendered server-side and appear here.',
       },
       {
         key: 'variables',
